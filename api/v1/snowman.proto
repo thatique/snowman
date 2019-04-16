@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package snowman.api.v1;
+
+import "google/protobuf/empty.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option go_package = "v1";
+
+// Enable gogoprotobuf extensions (https://github.com/gogo/protobuf/blob/master/extensions.md).
+// Enable custom Marshal method.
+option (gogoproto.marshaler_all) = true;
+// Enable custom Unmarshal method.
+option (gogoproto.unmarshaler_all) = true;
+// Enable custom Size method (Required by Marshal and Unmarshal).
+option (gogoproto.sizer_all) = true;
+// Enable registration with golang/protobuf for the grpc-gateway.
+option (gogoproto.goproto_registration) = true;
+
+message Snowflake {
+	bytes id = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.customname) = "ID",
+    (gogoproto.customtype) = "ID"
+  ];
+}
+
+message BatchIDsRequest {
+	int32 length = 1;
+}
+
+service SnowflakeService {
+	rpc NextID(google.protobuf.Empty) returns (Snowflake) {}
+
+	rpc BatchNextID(BatchIDsRequest) returns (stream Snowflake) {}
+}
