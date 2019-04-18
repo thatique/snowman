@@ -1,11 +1,11 @@
 package server
 
 import (
-	"errors"
 	"context"
+	"errors"
 
-	"github.com/thatique/snowman/api/v1"
 	"github.com/gogo/protobuf/types"
+	"github.com/thatique/snowman/api/v1"
 )
 
 var _ v1.SnowflakeServiceServer = (*Server)(nil)
@@ -29,7 +29,7 @@ func (s *Server) BatchNextID(req *v1.BatchIDsRequest, srv v1.SnowflakeService_Ba
 		return errors.New("length can't be zero or negative")
 	}
 	var (
-		id uint64
+		id        uint64
 		snowflake *v1.Snowflake
 	)
 	for i := 0; i < len; i++ {

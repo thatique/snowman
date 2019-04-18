@@ -19,9 +19,9 @@ option (gogoproto.goproto_registration) = true;
 
 message Snowflake {
 	bytes id = 1 [
-    (gogoproto.nullable) = false,
-    (gogoproto.customname) = "ID",
-    (gogoproto.customtype) = "ID"
+	(gogoproto.nullable) = false,
+	(gogoproto.customname) = "ID",
+	(gogoproto.customtype) = "ID"
   ];
 }
 

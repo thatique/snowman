@@ -4,20 +4,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"io"
 	"io/ioutil"
+	"os"
 	"time"
 
+	"github.com/gogo/protobuf/types"
+	"github.com/thatique/snowman/api/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
-	"github.com/gogo/protobuf/types"
-	"github.com/thatique/snowman/api/v1"
 )
 
 var (
-	addr = flag.String("addr", "localhost:6996", "The address and port of the server to connect to")
+	addr     = flag.String("addr", "localhost:6996", "The address and port of the server to connect to")
 	clientCa = flag.String("client_ca", "", "The TLS client CA")
 )
 

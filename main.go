@@ -4,31 +4,31 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"io/ioutil"
-	"net"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
-	"github.com/thatique/snowman/server"
 	"github.com/thatique/snowman/api/v1"
+	"github.com/thatique/snowman/server"
 )
 
 var (
-	certFile    = flag.String("cert_file", "", "The TLS cert file")
-	keyFile     = flag.String("key_file", "", "The TLS key file")
-	gRPCPort    = flag.Int("grpc-port", 6996, "The gRPC server port")
+	certFile = flag.String("cert_file", "", "The TLS cert file")
+	keyFile  = flag.String("key_file", "", "The TLS key file")
+	gRPCPort = flag.Int("grpc-port", 6996, "The gRPC server port")
 )
 
 var (
 	machineID int
-	log grpclog.LoggerV2
+	log       grpclog.LoggerV2
 	// this channel gets notified when process receives signal. It is global to ease unit testing
 	quit = make(chan os.Signal, 1)
 )
