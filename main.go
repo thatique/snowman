@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -23,7 +24,6 @@ var (
 	certFile    = flag.String("cert_file", "", "The TLS cert file")
 	keyFile     = flag.String("key_file", "", "The TLS key file")
 	gRPCPort    = flag.Int("grpc-port", 6996, "The gRPC server port")
-	gatewayPort = flag.Int("gateway-port", 6997, "The gRPC-Gateway server port")
 )
 
 var (
@@ -51,11 +51,17 @@ func main() {
 	if *certFile == "" || *keyFile == "" {
 		log.Info("serving without tls file")
 	} else {
-		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
+		// Parse certificates from certificate file and key file for server.
+		cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
 		if err != nil {
 			log.Fatalf("Failed to generate credentials %v", err)
 		}
-		opts = []grpc.ServerOption{grpc.Creds(creds)}
+		tlsConfig := tls.Config{
+			Certificates:             []tls.Certificate{cert},
+			MinVersion:               tls.VersionTLS12,
+			PreferServerCipherSuites: true,
+		}
+		opts = append(opts, grpc.Creds(credentials.NewTLS(&tlsConfig)))
 	}
 	s := grpc.NewServer(opts...)
 	v1.RegisterSnowflakeServiceServer(s, server.New(machineID))
