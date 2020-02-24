@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -16,13 +17,14 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
-	"github.com/thatique/snowman/api/v1"
+	v1 "github.com/thatique/snowman/api/v1"
 	"github.com/thatique/snowman/server"
 )
 
 var (
-	certFile = flag.String("cert_file", "", "The TLS cert file")
-	keyFile  = flag.String("key_file", "", "The TLS key file")
+	certFile = flag.String("cert-file", "", "The TLS cert file")
+	keyFile  = flag.String("key-file", "", "The TLS key file")
+	clientCA = flag.String("client-ca", "", "The TLS client CA")
 	gRPCPort = flag.Int("grpc-port", 6996, "The gRPC server port")
 )
 
@@ -48,6 +50,18 @@ func main() {
 		log.Fatalln("Failed to listen:", err)
 	}
 	var opts []grpc.ServerOption
+
+	allowedTLSCiphers := []uint16{
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	}
+
 	if *certFile == "" || *keyFile == "" {
 		log.Info("serving without tls file")
 	} else {
@@ -59,7 +73,23 @@ func main() {
 		tlsConfig := tls.Config{
 			Certificates:             []tls.Certificate{cert},
 			MinVersion:               tls.VersionTLS12,
+			CipherSuites:             allowedTLSCiphers,
 			PreferServerCipherSuites: true,
+		}
+
+		if *clientCA != "" {
+			// Parse certificates from client CA file to a new CertPool.
+			cPool := x509.NewCertPool()
+			clientCert, err := ioutil.ReadFile(*clientCA)
+			if err != nil {
+				log.Fatalf("invalid config: reading from client CA file: %v", err)
+			}
+			if !cPool.AppendCertsFromPEM(clientCert) {
+				log.Fatal("invalid config: failed to parse client CA")
+			}
+
+			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+			tlsConfig.ClientCAs = cPool
 		}
 		opts = append(opts, grpc.Creds(credentials.NewTLS(&tlsConfig)))
 	}

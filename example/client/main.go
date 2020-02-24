@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
@@ -10,15 +12,17 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/types"
-	"github.com/thatique/snowman/api/v1"
+	v1 "github.com/thatique/snowman/api/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 )
 
 var (
-	addr     = flag.String("addr", "localhost:6996", "The address and port of the server to connect to")
-	clientCa = flag.String("client_ca", "", "The TLS client CA")
+	addr      = flag.String("addr", "localhost:6996", "The address and port of the server to connect to")
+	caCrt     = flag.String("ca-crt", "", "CA certificate")
+	clientCrt = flag.String("client-crt", "", "Client certificate")
+	clientKey = flag.String("client-key", "", "Client key")
 )
 
 var log grpclog.LoggerV2
@@ -27,14 +31,29 @@ func init() {
 	log = grpclog.NewLoggerV2(os.Stdout, ioutil.Discard, ioutil.Discard)
 }
 
-func newSnowmanClient(hostAndPort, caPath string) (v1.SnowflakeServiceClient, error) {
+func newSnowmanClient(hostAndPort, caPath, clientCrt, clientKey string) (v1.SnowflakeServiceClient, error) {
 	var opts []grpc.DialOption
 
 	if caPath != "" {
-		creds, err := credentials.NewClientTLSFromFile(caPath, "")
+		cPool := x509.NewCertPool()
+		caCert, err := ioutil.ReadFile(caPath)
 		if err != nil {
-			return nil, fmt.Errorf("load cert: %v", err)
+			return nil, fmt.Errorf("invalid CA crt file: %s", caPath)
 		}
+		if cPool.AppendCertsFromPEM(caCert) != true {
+			return nil, fmt.Errorf("failed to parse CA crt")
+		}
+
+		clientCert, err := tls.LoadX509KeyPair(clientCrt, clientKey)
+		if err != nil {
+			return nil, fmt.Errorf("invalid client crt file: %s", caPath)
+		}
+
+		clientTLSConfig := &tls.Config{
+			RootCAs:      cPool,
+			Certificates: []tls.Certificate{clientCert},
+		}
+		creds := credentials.NewTLS(clientTLSConfig)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 		log.Infoln("create connection with TSL transport creds")
 	} else {
@@ -52,7 +71,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	client, err := newSnowmanClient(*addr, *clientCa)
+	client, err := newSnowmanClient(*addr, *caCrt, *clientCrt, *clientKey)
 	if err != nil {
 		log.Fatalln("Failed create connection to:", *addr)
 	}
