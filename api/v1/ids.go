@@ -44,7 +44,7 @@ func (id ID) MarshalJSON() ([]byte, error) {
 	var b [8]byte
 	id.MarshalTo(b[:]) // can only error on incorrect buffer size
 	v := make([]byte, 12+2)
-	base64.StdEncoding.Encode(v[1:13], b[:])
+	base64.URLEncoding.Encode(v[1:13], b[:])
 	v[0], v[13] = '"', '"'
 	return v, nil
 }
@@ -59,7 +59,7 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 	if l := len(str); l > 2 && str[0] == '"' && str[l-1] == '"' {
 		str = str[1 : l-1]
 	}
-	b, err := base64.StdEncoding.DecodeString(str)
+	b, err := base64.URLEncoding.DecodeString(str)
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal ID from string '%s': %v", string(data), err)
 	}
