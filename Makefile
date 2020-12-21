@@ -1,9 +1,9 @@
 generate:
 	protoc \
 		-I api/v1/ \
-		-I vendor/github.com/grpc-ecosystem/grpc-gateway/ \
-		-I vendor/github.com/gogo/googleapis/ \
-		-I vendor/ \
+		-I=$(GOPATH)/src \
+		-I $(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/ \
+		-I $(GOPATH)/src/github.com/gogo/googleapis/ \
 		--gogo_out=plugins=grpc,\
 Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
 Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api:\
