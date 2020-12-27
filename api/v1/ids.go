@@ -1,15 +1,28 @@
 package v1
 
 import (
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	"github.com/gogo/protobuf/jsonpb"
 )
 
 // ID returned in GRPC
 type ID uint64
+
+// NewIDFromString create ID from string
+func NewIDFromString(s string) (ID, error) {
+	if len(s) > 16 {
+		return ID(0), fmt.Errorf("ID cannot be longer than 16 hex character: %s", s)
+	}
+	id, err := strconv.ParseUint(s, 16, 64)
+	if err != nil {
+		return ID(0), err
+	}
+
+	return ID(id), nil
+}
 
 // String returns string representation of ID
 func (id ID) String() string {
@@ -37,33 +50,25 @@ func (id *ID) Unmarshal(data []byte) error {
 	return nil
 }
 
-// MarshalJSON converts span id into a base64 string enclosed in quotes.
-// Used by protobuf JSON serialization.
-// Example: {1} => "AAAAAAAAAAE=".
+// MarshalJSON converts id into a string enclosed in quotes.
 func (id ID) MarshalJSON() ([]byte, error) {
-	var b [8]byte
-	id.MarshalTo(b[:]) // can only error on incorrect buffer size
-	v := make([]byte, 12+2)
-	base64.URLEncoding.Encode(v[1:13], b[:])
-	v[0], v[13] = '"', '"'
-	return v, nil
+	s := fmt.Sprintf(`"%s"`, id.String())
+	return []byte(s), nil
 }
 
 // UnmarshalJSON inflates id from base64 string, possibly enclosed in quotes.
-// User by protobuf JSON serialization.
-//
-// There appears to be a bug in gogoproto, as this function is only called for numeric values.
-// https://github.com/gogo/protobuf/issues/411#issuecomment-393856837
 func (id *ID) UnmarshalJSON(data []byte) error {
 	str := string(data)
 	if l := len(str); l > 2 && str[0] == '"' && str[l-1] == '"' {
 		str = str[1 : l-1]
 	}
-	b, err := base64.URLEncoding.DecodeString(str)
+	nid, err := NewIDFromString(str)
 	if err != nil {
-		return fmt.Errorf("cannot unmarshal ID from string '%s': %v", string(data), err)
+		return err
 	}
-	return id.Unmarshal(b)
+
+	*id = nid
+	return nil
 }
 
 // UnmarshalJSONPB inflates id from base64 string, possibly enclosed in quotes.
